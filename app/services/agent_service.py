@@ -1,3 +1,4 @@
+import json
 from typing import AsyncGenerator
 
 from app.agents.orchestrator import Orchestrator
@@ -5,6 +6,7 @@ from app.llm.client import LLMClient
 from app.tools.registry import ToolRegistry
 from app.core.events import EventBus
 from app.schemas.agent import RunRequest
+from build.lib.app.core.exceptions import BaseAppError
 
 
 class AgentService:
@@ -29,5 +31,11 @@ class AgentService:
         if not request.url and not request.file:
             raise ValueError("Request must include either a url or a file.")
 
-        async for chunk in self._orchestrator.run(request):
-            yield chunk
+        try:
+            async for chunk in self._orchestrator.run(request):
+                yield chunk
+        except BaseAppError as e:
+            # yield a clean SSE error event instead of crashing the stream
+            yield f"data: {json.dumps({'type': 'error', 'code': e.code, 'message': e.message})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'code': 'INTERNAL_ERROR', 'message': str(e)})}\n\n"
