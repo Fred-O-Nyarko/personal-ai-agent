@@ -37,8 +37,10 @@ class OpenAIProvider(LLMProvider):
                 model=self._model,
                 messages=messages,
             ) as s:
-                async for chunk in s:
-                    delta = chunk.choices[0].delta.content
+                async for event in s:
+                    if event.type != "content.delta":
+                        continue
+                    delta = event.delta
                     if delta:
                         yield f"data: {json.dumps({'type': 'token', 'content': delta})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"

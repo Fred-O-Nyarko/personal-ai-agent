@@ -88,7 +88,7 @@ class Container:
     def thread_service(self):
         if not hasattr(self, "_thread_service"):
             from app.services.thread_service import ThreadService
-            self._thread_service = ThreadService()
+            self._thread_service = ThreadService(event_bus=self._event_bus)
         return self._thread_service
 
 
